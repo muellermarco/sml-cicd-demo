@@ -1,0 +1,26 @@
+# Release gate: pushing a version tag (vX.Y) is the manual sign-off action.
+# The tag triggers the sml_release_live DAG which deploys that exact ref to
+# the Live AtScale instance. Rollback = re-run with the previous tag.
+name: release-live
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  trigger-airflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger sml_release_live DAG
+        env:
+          AIRFLOW_URL: ${{ vars.AIRFLOW_URL }}
+          AIRFLOW_USER: ${{ secrets.AIRFLOW_USER }}
+          AIRFLOW_PASSWORD: ${{ secrets.AIRFLOW_PASSWORD }}
+        run: |
+          TOKEN=$(curl -sf -X POST "$AIRFLOW_URL/auth/token" \
+            -H 'Content-Type: application/json' \
+            -d "{\"username\":\"$AIRFLOW_USER\",\"password\":\"$AIRFLOW_PASSWORD\"}" | jq -r .access_token)
+          curl -sf -X POST "$AIRFLOW_URL/api/v2/dags/sml_release_live/dagRuns" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d "{\"logical_date\": null, \"conf\": {\"tag\": \"$GITHUB_REF_NAME\"}}"

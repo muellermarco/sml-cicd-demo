@@ -1,0 +1,197 @@
+unique_name: DemoModel
+object_type: model
+label: DemoModel
+aggregates:
+  - unique_name: customer sales
+    label: customer sales
+    attributes:
+      - name: Customer Demographics
+        dimension: Customer Demographics
+    metrics:
+      - m_ss_quantity_sum
+include_default_drillthrough: true
+metrics:
+  - unique_name: m_purchased_amount_in_store
+    folder: Store Sales Measures
+  - unique_name: m_purchased_amount_on_web
+    folder: Web Sales Measures
+  - unique_name: m_SS Row Counter_sum
+    folder: Store Sales Measures
+  - unique_name: m_SS_CUSTOMER_SK_count
+    folder: Customer Information
+  - unique_name: m_ss_list_price_avg
+    folder: Store Sales Measures
+  - unique_name: m_ss_net_paid_inc_tax_sum
+    folder: Store Sales Measures
+  - unique_name: m_ss_net_paid_sum
+    folder: Store Sales Measures
+  - unique_name: m_ss_net_profit_sum
+    folder: Store Sales Measures
+  - unique_name: m_ss_quantity_sum
+    folder: Store Sales Measures
+  - unique_name: m_ss_sales_price_avg
+    folder: Store Sales Measures
+  - unique_name: m_store_coupon_amt_sum
+    folder: Store Sales Measures
+  - unique_name: m_store_sales_price
+    folder: Store Sales Measures
+  - unique_name: m_web_sales_net_paid
+    folder: Web Sales Measures
+  - unique_name: m_web_sales_sum
+    folder: Web Sales Measures
+  - unique_name: m_WS Row Counter_sum
+    folder: Web Sales Measures
+  - unique_name: m_WS_BILL_CUSTOMER_SK_count
+    folder: Customer Information
+  - unique_name: m_ws_ext_discount_amt_sum
+    folder: Web Sales Measures
+  - unique_name: m_ws_ext_ship_cost_sum
+    folder: Web Sales Measures
+  - unique_name: m_ws_ext_wholesale_cost_sum
+    folder: Web Sales Measures
+  - unique_name: m_ws_net_paid_inc_ship_sum
+    folder: Web Sales Measures
+  - unique_name: m_ws_net_paid_inc_ship_tax_sum
+    folder: Web Sales Measures
+  - unique_name: m_ws_net_paid_inc_tax_sum
+    folder: Web Sales Measures
+  - unique_name: m_ws_net_paid_sum
+    folder: Web Sales Measures
+  - unique_name: m_ws_net_profit_sum
+    folder: Web Sales Measures
+  - unique_name: m_ws_quantity_sum
+    folder: Web Sales Measures
+  - unique_name: Average Web Unit Net Profit
+    folder: Web Sales Measures
+  - unique_name: Avg Store Unit Net Profit
+    folder: Store Attributes
+  - unique_name: Customer Count
+    folder: Customer Information
+  - unique_name: Store and Web Purchased Amount
+    folder: Store Sales Measures
+  - unique_name: Store Revenue Ratio by Product Class
+    folder: Store Sales Measures
+  - unique_name: Store Sales Increase
+    folder: Store Sales Measures
+  - unique_name: Total Net Profit
+    folder: Total Sales Measures
+  - unique_name: Total Quantity Sold
+    folder: Total Sales Measures
+  - unique_name: Web Sales Increase
+    folder: Web Sales Measures
+relationships:
+  - unique_name: web_sales_Fulfilling_Warehouse
+    from:
+      dataset: web_sales
+      join_columns:
+        - WS_WAREHOUSE_SK
+    to:
+      dimension: Fulfilling Warehouse
+      level: Fulfilling Warehouse
+  - unique_name: web_sales_Promotions
+    from:
+      dataset: web_sales
+      join_columns:
+        - WS_PROMO_SK
+    to:
+      dimension: Promotions
+      level: Promotions
+  - unique_name: web_sales_Date_Dimension_Sold
+    from:
+      dataset: web_sales
+      join_columns:
+        - WS_SOLD_DATE_SK
+    role_play: Sold {0}
+    to:
+      dimension: Date Dimension
+      level: Time Dimension
+  - unique_name: web_sales_Date_Dimension_Ship
+    from:
+      dataset: web_sales
+      join_columns:
+        - WS_SHIP_DATE_SK
+    role_play: Ship {0}
+    to:
+      dimension: Date Dimension
+      level: Time Dimension
+  - unique_name: web_sales_Customer_Dimension
+    from:
+      dataset: web_sales
+      join_columns:
+        - WS_BILL_CUSTOMER_SK
+    to:
+      dimension: Customer Dimension
+      level: Customer Number
+  - unique_name: web_sales_Customer_Demographics
+    from:
+      dataset: web_sales
+      join_columns:
+        - WS_BILL_CDEMO_SK
+    to:
+      dimension: Customer Demographics
+      level: Customer Demographics
+  - unique_name: web_sales_Ship_Mode
+    from:
+      dataset: web_sales
+      join_columns:
+        - WS_SHIP_MODE_SK
+    to:
+      dimension: Ship Mode
+      level: Ship Mode
+  - unique_name: web_sales_Product_Dimension
+    from:
+      dataset: web_sales
+      join_columns:
+        - WS_ITEM_SK
+    to:
+      dimension: Product Dimension
+      level: Product Dimension
+  - unique_name: store_sales_Store_Dimension
+    from:
+      dataset: store_sales
+      join_columns:
+        - SS_STORE_SK
+    to:
+      dimension: Store Dimension
+      level: Store Dimension
+  - unique_name: store_sales_Promotions
+    from:
+      dataset: store_sales
+      join_columns:
+        - SS_PROMO_SK
+    to:
+      dimension: Promotions
+      level: Promotions
+  - unique_name: store_sales_Date_Dimension_Sold
+    from:
+      dataset: store_sales
+      join_columns:
+        - SS_SOLD_DATE_SK
+    role_play: Sold {0}
+    to:
+      dimension: Date Dimension
+      level: Time Dimension
+  - unique_name: store_sales_Customer_Dimension
+    from:
+      dataset: store_sales
+      join_columns:
+        - SS_CUSTOMER_SK
+    to:
+      dimension: Customer Dimension
+      level: Customer Number
+  - unique_name: store_sales_Customer_Demographics
+    from:
+      dataset: store_sales
+      join_columns:
+        - SS_CDEMO_SK
+    to:
+      dimension: Customer Demographics
+      level: Customer Demographics
+  - unique_name: store_sales_Product_Dimension
+    from:
+      dataset: store_sales
+      join_columns:
+        - SS_ITEM_SK
+    to:
+      dimension: Product Dimension
+      level: Product Dimension

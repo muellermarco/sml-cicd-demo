@@ -1,0 +1,7 @@
+unique_name: m_ss_list_price_avg
+object_type: metric
+label: Average Store Sales List Price
+calculation_method: average
+unrelated_dimensions_handling: empty
+dataset: store_sales
+column: SS_LIST_PRICE

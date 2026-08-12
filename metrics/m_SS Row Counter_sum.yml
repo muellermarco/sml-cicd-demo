@@ -1,0 +1,7 @@
+unique_name: m_SS Row Counter_sum
+object_type: metric
+label: Store Sales Row Counter
+calculation_method: sum
+unrelated_dimensions_handling: empty
+dataset: store_sales
+column: SS ROW COUNTER

@@ -1,0 +1,6 @@
+version: 1
+packages:
+ - name: Common-Objects
+   url: https://github.com/muellermarco/sml-tpcds-common.git
+   branch: main
+   version: commit:28c9bd16a8e10ced02797e8ba799310d57929173

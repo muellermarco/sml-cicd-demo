@@ -1,0 +1,8 @@
+# sml-cli install output — packages are fetched in CI/deploy, never committed
+packages/
+.gitmodules
+sml-cli.log
+
+.DS_Store
+node_modules/
+.vscode/

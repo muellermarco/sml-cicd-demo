@@ -1,0 +1,31 @@
+# Service-hook analog (git host web hook -> Airflow REST API).
+# On every push to main, trigger the sml_deploy_qa DAG which deploys the commit
+# to the QA AtScale instance and posts a commit status back.
+#
+# Required repository configuration:
+#   variable  AIRFLOW_URL       e.g. http://airflow.atscale-demo.com:8080
+#   secret    AIRFLOW_USER      Airflow API user
+#   secret    AIRFLOW_PASSWORD  Airflow API password
+name: deploy-qa
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  trigger-airflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger sml_deploy_qa DAG
+        env:
+          AIRFLOW_URL: ${{ vars.AIRFLOW_URL }}
+          AIRFLOW_USER: ${{ secrets.AIRFLOW_USER }}
+          AIRFLOW_PASSWORD: ${{ secrets.AIRFLOW_PASSWORD }}
+        run: |
+          TOKEN=$(curl -sf -X POST "$AIRFLOW_URL/auth/token" \
+            -H 'Content-Type: application/json' \
+            -d "{\"username\":\"$AIRFLOW_USER\",\"password\":\"$AIRFLOW_PASSWORD\"}" | jq -r .access_token)
+          curl -sf -X POST "$AIRFLOW_URL/api/v2/dags/sml_deploy_qa/dagRuns" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H 'Content-Type: application/json' \
+            -d "{\"logical_date\": null, \"conf\": {\"sha\": \"$GITHUB_SHA\"}}"

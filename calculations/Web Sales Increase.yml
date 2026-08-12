@@ -1,0 +1,6 @@
+unique_name: Web Sales Increase
+object_type: metric_calc
+label: Web Sales Increase
+expression: |-
+  [Measures].[m_web_sales_sum]  /
+  (ParallelPeriod([Sold Date Dimension].[Sold d_month_of_year].[Sold d_month_of_year], -12, [Sold Date Dimension].[Sold d_month_of_year].CurrentMember), [Measures].[m_web_sales_sum])

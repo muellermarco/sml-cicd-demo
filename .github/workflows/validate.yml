@@ -1,0 +1,29 @@
+# PR gate: repo-only validation (no warehouse/AtScale access needed).
+# Environment-touching steps (deploy, regression)
+# run in Airflow and report back as commit statuses — see docs/CICD_PROCESS.md.
+name: validate
+
+on:
+  pull_request:
+  push:
+    branches: [main, baseline]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Python deps
+        run: pip install pyyaml
+      - name: Install SML packages
+        run: npx -y sml-cli install .
+      - name: Official SML validation
+        run: npx -y sml-cli validate . | tee sml-cli.log && grep -q "Validation SUCCESSFUL" sml-cli.log
+      - name: Cross-reference integrity
+        run: python tools/validate_sml.py .

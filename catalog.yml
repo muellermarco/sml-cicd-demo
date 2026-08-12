@@ -1,0 +1,9 @@
+version: 1.5
+unique_name: TPCDS-MM-Snowflake
+object_type: catalog
+label: TPC-DS MM Snowflake
+aggressive_agg_promotion: false
+build_speculative_aggs: false
+aggregate_store:
+    as_connection: preferredstore
+    row_count_limit: 10000000
