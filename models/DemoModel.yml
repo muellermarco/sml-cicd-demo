@@ -79,6 +79,7 @@ metrics:
     folder: Total Sales Measures
   - unique_name: Web Sales Increase
     folder: Web Sales Measures
+  - unique_name: Test Metric
 relationships:
   - unique_name: web_sales_Fulfilling_Warehouse
     from:
