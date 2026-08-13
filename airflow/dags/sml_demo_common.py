@@ -11,13 +11,47 @@ get invalidated (AtScale public tokens are single-active per user). Secrets:
   github-token                                          key: token
 
 Endpoints mirror config/environment.yml.
+
+=== Repo configuration — DEFINE ONCE ===
+Point the whole pipeline at a different SML repo by setting Airflow Variables
+(Admin -> Variables), no code change:
+    repo_url      https://github.com/<you>/<repo>.git   (what gets deployed)
+    github_repo   <you>/<repo>                           (for the GitHub API)
+    upstream_url  https://github.com/<you>/<model>.git   (baseline drift source)
+The DEFAULT_* values below are the fallback when a Variable is unset. (The
+Airflow git-sync source that bootstraps these DAGs is separate infra — it
+lives in values-airflow.yaml -> dags.gitSync.repo.)
 """
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from airflow.providers.cncf.kubernetes.secret import Secret
 
-REPO_URL = "https://github.com/muellermarco/sml-cicd-demo.git"
-GITHUB_REPO = "muellermarco/sml-cicd-demo"
-UPSTREAM_URL = "https://github.com/muellermarco/sml-tpcds-snowflake.git"
+DEFAULT_REPO_URL = "https://github.com/muellermarco/sml-cicd-demo.git"
+DEFAULT_GITHUB_REPO = "muellermarco/sml-cicd-demo"
+DEFAULT_UPSTREAM_URL = "https://github.com/muellermarco/sml-tpcds-snowflake.git"
+
+# Jinja templates — KubernetesPodOperator env_vars/arguments are rendered at
+# task runtime, so the Variable override takes effect without re-parsing code.
+REPO_URL_TMPL = "{{ var.value.get('repo_url', '" + DEFAULT_REPO_URL + "') }}"
+GITHUB_REPO_TMPL = "{{ var.value.get('github_repo', '" + DEFAULT_GITHUB_REPO + "') }}"
+UPSTREAM_URL_TMPL = "{{ var.value.get('upstream_url', '" + DEFAULT_UPSTREAM_URL + "') }}"
+
+# Pin the deploy toolchain so a new upstream release can't silently break runs.
+SML_CLI = "sml-cli@2025.12.0"
+
+
+def repo_var(key: str, default: str) -> str:
+    """Read a repo-config Variable at TASK runtime (not DAG-parse time)."""
+    try:
+        try:
+            from airflow.sdk import Variable          # Airflow 3
+        except ImportError:                            # pragma: no cover
+            from airflow.models import Variable        # Airflow 2 fallback
+        try:
+            return Variable.get(key, default=default)
+        except TypeError:                              # pragma: no cover
+            return Variable.get(key, default_var=default)
+    except Exception:                                  # noqa: BLE001
+        return default
 
 # Base hostnames (no path). sml-cli needs the `/api` base, added in the script.
 ATSCALE_HOSTS = {
@@ -68,12 +102,12 @@ export ATSCALE_API_TOKEN=$(curl -sk -X POST -H "Authorization: Bearer $OT" \
   "$HOST/api/auth/token/public" | sed -n 's/.*"token":"\\([^"]*\\)".*/\\1/p')
 test -n "$ATSCALE_API_TOKEN" || {{ echo "failed to mint public token"; exit 1; }}
 export ATSCALE_API_URL="$HOST/api"
-git clone {REPO_URL} /work && cd /work
+git clone "$REPO_URL" /work && cd /work
 git checkout {git_ref}
-npx -y sml-cli install .
-npx -y sml-cli validate . | tee /tmp/validate.log
+npx -y {SML_CLI} install .
+npx -y {SML_CLI} validate . | tee /tmp/validate.log
 grep -q "Validation SUCCESSFUL" /tmp/validate.log
-npx -y sml-cli atscale-deploy .{flags}
+npx -y {SML_CLI} atscale-deploy .{flags}
 """
     return KubernetesPodOperator(
         task_id=task_id,
@@ -83,7 +117,10 @@ npx -y sml-cli atscale-deploy .{flags}
         image=NODE_IMAGE,
         cmds=["bash", "-c"],
         arguments=[script],
-        env_vars={"NODE_TLS_REJECT_UNAUTHORIZED": "0"},  # self-signed certs
+        env_vars={
+            "NODE_TLS_REJECT_UNAUTHORIZED": "0",  # self-signed certs
+            "REPO_URL": REPO_URL_TMPL,            # Variable-overridable
+        },
         secrets=oauth_secrets(env),
         get_logs=True,
         is_delete_operator_pod=True,
@@ -107,8 +144,9 @@ def github_status(sha: str, state: str, context: str, description: str):
         if not token:
             print("Airflow variable 'github_token' not set — skipping status post.")
             return
+        repo = repo_var("github_repo", DEFAULT_GITHUB_REPO)
         r = requests.post(
-            f"https://api.github.com/repos/{GITHUB_REPO}/statuses/{sha}",
+            f"https://api.github.com/repos/{repo}/statuses/{sha}",
             headers={"Authorization": f"Bearer {token}",
                      "Accept": "application/vnd.github+json"},
             json={"state": state, "context": context,
