@@ -72,20 +72,27 @@ npx -y sml-cli atscale-deploy .{flags}
 
 
 def github_status(sha: str, state: str, context: str, description: str):
-    """POST a commit status back to GitHub."""
+    """POST a commit status back to GitHub. Never fatal — a status-post hiccup
+    must not fail an otherwise-successful deploy."""
     import requests
-    from airflow.models import Variable
+    try:
+        from airflow.sdk import Variable          # Airflow 3
+    except ImportError:                            # pragma: no cover
+        from airflow.models import Variable        # Airflow 2 fallback
 
     token = Variable.get("github_token", default_var=None)
     if not token:
         print("Airflow variable 'github_token' not set — skipping status post.")
         return
-    r = requests.post(
-        f"https://api.github.com/repos/{GITHUB_REPO}/statuses/{sha}",
-        headers={"Authorization": f"Bearer {token}",
-                 "Accept": "application/vnd.github+json"},
-        json={"state": state, "context": context, "description": description[:140]},
-        timeout=30,
-    )
-    print(f"GitHub status {context}={state} for {sha}: HTTP {r.status_code}")
-    r.raise_for_status()
+    try:
+        r = requests.post(
+            f"https://api.github.com/repos/{GITHUB_REPO}/statuses/{sha}",
+            headers={"Authorization": f"Bearer {token}",
+                     "Accept": "application/vnd.github+json"},
+            json={"state": state, "context": context,
+                  "description": description[:140]},
+            timeout=30,
+        )
+        print(f"GitHub status {context}={state} for {sha}: HTTP {r.status_code}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"GitHub status post failed (non-fatal): {exc}")
