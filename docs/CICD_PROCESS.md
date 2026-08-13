@@ -13,7 +13,7 @@ flowchart LR
     REV -->|merge| MAIN[main]
     MAIN -->|GitHub Action hook| QA[QA deploy\nqa.atscale-demo.com]
     QA -->|nightly parity vs Live| SIGN{Sign-off}
-    SIGN -->|tag vX.Y| LIVE[Live deploy\natscale-mm.atscale-demo.com]
+    SIGN -->|tag vX.Y| LIVE[Live deploy\nprod.atscale-demo.com]
     BASE[baseline branch\nupstream model source] -->|drift PR| CI
 ```
 
@@ -42,7 +42,7 @@ Two producer flows feed the same pipeline:
 |---|---|---|---|---|
 | Development | `dev.atscale-demo.com` | `atscale-dev` | feature-branch catalogs | manual / Airflow per branch |
 | QA | `qa.atscale-demo.com` | `atscale-qa` | every `main` commit | automatic on merge |
-| Live | `atscale-mm.atscale-demo.com` | `atscale` | tagged releases | manual, tag-gated |
+| Live | `prod.atscale-demo.com` | `atscale` | tagged releases | manual, tag-gated |
 
 Promotion is by **git ref, not artifact copy** — QA and Live always correspond
 to an exact commit/tag, so "what is deployed" is answered by `git log`.

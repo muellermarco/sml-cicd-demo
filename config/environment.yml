@@ -20,7 +20,7 @@ atscale:
     namespace: atscale-qa
     purpose: auto-deploy on merge to main; nightly regression vs Live
   live:
-    host: atscale-mm.atscale-demo.com
+    host: prod.atscale-demo.com
     namespace: atscale
     purpose: tagged releases only (vX.Y), gated by manual sign-off
 
