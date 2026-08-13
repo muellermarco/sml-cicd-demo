@@ -2,9 +2,12 @@
 
 All environment-touching work runs in short-lived Kubernetes pods (node:20
 image) in the `airflow` namespace — the Airflow image itself needs neither
-node nor sml-cli. Credentials come from Kubernetes secrets:
+node nor sml-cli. Each deploy pod mints its own AtScale public-API token at
+runtime from OAuth credentials, so there are no long-lived tokens to expire or
+get invalidated (AtScale public tokens are single-active per user). Secrets:
 
-  atscale-dev-api / atscale-qa-api / atscale-live-api   key: token
+  atscale-dev-oauth / atscale-qa-oauth / atscale-live-oauth
+      keys: clientSecret, adminUser, adminPassword
   github-token                                          key: token
 
 Endpoints mirror config/environment.yml.
@@ -16,17 +19,24 @@ REPO_URL = "https://github.com/muellermarco/sml-cicd-demo.git"
 GITHUB_REPO = "muellermarco/sml-cicd-demo"
 UPSTREAM_URL = "https://github.com/muellermarco/sml-tpcds-snowflake.git"
 
+# Base hostnames (no path). sml-cli needs the `/api` base, added in the script.
 ATSCALE_HOSTS = {
     "dev": "https://dev.atscale-demo.com",
     "qa": "https://qa.atscale-demo.com",
-    "live": "https://atscale-mm.atscale-demo.com",
+    "live": "https://prod.atscale-demo.com",
 }
 
 NODE_IMAGE = "node:20-bookworm"  # includes git
 
 
-def atscale_token_secret(env: str) -> Secret:
-    return Secret("env", "ATSCALE_API_TOKEN", f"atscale-{env}-api", "token")
+def oauth_secrets(env: str) -> list[Secret]:
+    """OAuth creds the pod uses to mint a fresh public-API token at runtime."""
+    name = f"atscale-{env}-oauth"
+    return [
+        Secret("env", "ATSCALE_CLIENT_SECRET", name, "clientSecret"),
+        Secret("env", "ATSCALE_ADMIN_USER", name, "adminUser"),
+        Secret("env", "ATSCALE_ADMIN_PASSWORD", name, "adminPassword"),
+    ]
 
 
 github_token_secret = Secret("env", "GITHUB_TOKEN", "github-token", "token")
@@ -35,13 +45,29 @@ github_token_secret = Secret("env", "GITHUB_TOKEN", "github-token", "token")
 def deploy_pod(task_id: str, env: str, git_ref: str,
                catalog_name: str | None = None,
                catalog_label: str | None = None) -> KubernetesPodOperator:
-    """Clone the repo at git_ref and `sml-cli atscale-deploy` it to env."""
+    """Clone the repo at git_ref and `sml-cli atscale-deploy` it to env.
+
+    Mints a short-lived public-API token in-pod: OAuth password grant ->
+    /api/auth/token/public -> ATSCALE_API_TOKEN. No stored deploy token.
+    """
+    host = ATSCALE_HOSTS[env]
     flags = ""
     if catalog_name:
         flags += f' --catalog-name="{catalog_name}"'
     if catalog_label:
         flags += f' --catalog-label="{catalog_label}"'
     script = f"""set -euo pipefail
+HOST="{host}"
+OT=$(curl -sk -X POST "$HOST/auth/realms/atscale/protocol/openid-connect/token" \
+  -d grant_type=password -d client_id=atscale-public-api \
+  --data-urlencode client_secret="$ATSCALE_CLIENT_SECRET" \
+  --data-urlencode username="$ATSCALE_ADMIN_USER" \
+  --data-urlencode password="$ATSCALE_ADMIN_PASSWORD" \
+  | sed -n 's/.*"access_token":"\\([^"]*\\)".*/\\1/p')
+export ATSCALE_API_TOKEN=$(curl -sk -X POST -H "Authorization: Bearer $OT" \
+  "$HOST/api/auth/token/public" | sed -n 's/.*"token":"\\([^"]*\\)".*/\\1/p')
+test -n "$ATSCALE_API_TOKEN" || {{ echo "failed to mint public token"; exit 1; }}
+export ATSCALE_API_URL="$HOST/api"
 git clone {REPO_URL} /work && cd /work
 git checkout {git_ref}
 npx -y sml-cli install .
@@ -57,12 +83,8 @@ npx -y sml-cli atscale-deploy .{flags}
         image=NODE_IMAGE,
         cmds=["bash", "-c"],
         arguments=[script],
-        env_vars={
-            "ATSCALE_API_URL": ATSCALE_HOSTS[env],
-            # demo instances use self-signed certificates
-            "NODE_TLS_REJECT_UNAUTHORIZED": "0",
-        },
-        secrets=[atscale_token_secret(env)],
+        env_vars={"NODE_TLS_REJECT_UNAUTHORIZED": "0"},  # self-signed certs
+        secrets=oauth_secrets(env),
         get_logs=True,
         is_delete_operator_pod=True,
         startup_timeout_seconds=300,
@@ -70,20 +92,29 @@ npx -y sml-cli atscale-deploy .{flags}
 
 
 def github_status(sha: str, state: str, context: str, description: str):
-    """POST a commit status back to GitHub."""
+    """POST a commit status back to GitHub. Never fatal — a status-post hiccup
+    must not fail an otherwise-successful deploy."""
     import requests
-    from airflow.models import Variable
-
-    token = Variable.get("github_token", default_var=None)
-    if not token:
-        print("Airflow variable 'github_token' not set — skipping status post.")
-        return
-    r = requests.post(
-        f"https://api.github.com/repos/{GITHUB_REPO}/statuses/{sha}",
-        headers={"Authorization": f"Bearer {token}",
-                 "Accept": "application/vnd.github+json"},
-        json={"state": state, "context": context, "description": description[:140]},
-        timeout=30,
-    )
-    print(f"GitHub status {context}={state} for {sha}: HTTP {r.status_code}")
-    r.raise_for_status()
+    try:
+        try:
+            from airflow.sdk import Variable        # Airflow 3
+        except ImportError:                          # pragma: no cover
+            from airflow.models import Variable      # Airflow 2 fallback
+        try:
+            token = Variable.get("github_token", default=None)      # Airflow 3
+        except TypeError:                            # pragma: no cover
+            token = Variable.get("github_token", default_var=None)  # Airflow 2
+        if not token:
+            print("Airflow variable 'github_token' not set — skipping status post.")
+            return
+        r = requests.post(
+            f"https://api.github.com/repos/{GITHUB_REPO}/statuses/{sha}",
+            headers={"Authorization": f"Bearer {token}",
+                     "Accept": "application/vnd.github+json"},
+            json={"state": state, "context": context,
+                  "description": description[:140]},
+            timeout=30,
+        )
+        print(f"GitHub status {context}={state} for {sha}: HTTP {r.status_code}")
+    except Exception as exc:  # noqa: BLE001
+        print(f"GitHub status post failed (non-fatal): {exc}")
