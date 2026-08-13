@@ -6,4 +6,4 @@ aggressive_agg_promotion: false
 build_speculative_aggs: false
 aggregate_store:
     as_connection: preferredstore
-    row_count_limit: 10000000
+    row_count_limit: 1000000
