@@ -10,7 +10,7 @@ from airflow.decorators import dag
 from sml_demo_common import deploy_pod
 
 
-@dag(schedule=None, start_date=datetime(2026, 8, 1), catchup=False,
+@dag(schedule=None, start_date=datetime(2026, 8, 1), catchup=False, max_active_runs=1,
      tags=["sml-cicd-demo"], doc_md=__doc__,
      params={"tag": ""})
 def sml_release_live():

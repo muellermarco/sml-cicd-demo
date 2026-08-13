@@ -11,13 +11,15 @@ from datetime import datetime
 
 from airflow.decorators import dag
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
-from sml_demo_common import GITHUB_REPO, NODE_IMAGE, github_token_secret
+from sml_demo_common import GITHUB_REPO_TMPL, NODE_IMAGE, github_token_secret
 
-SCRIPT = f"""set -euo pipefail
+# Repo comes from env ($GITHUB_REPO), injected as a Variable-overridable
+# template below — see sml_demo_common "DEFINE ONCE".
+SCRIPT = """set -euo pipefail
 git config --global user.name  "usage-trace bot"
 git config --global user.email "bot@atscale-demo.com"
 
-git clone https://x-access-token:${{GITHUB_TOKEN}}@github.com/{GITHUB_REPO}.git /work
+git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git /work
 cd /work
 BRANCH="usage-backlog-$(date +%Y%m%d)"
 git checkout -b "$BRANCH"
@@ -46,10 +48,11 @@ git add docs/USAGE_BACKLOG.md
 git commit -m "usage backlog refresh $(date +%F)"
 git push origin "$BRANCH"
 
-curl -sf -X POST "https://api.github.com/repos/{GITHUB_REPO}/pulls" \\
-  -H "Authorization: Bearer ${{GITHUB_TOKEN}}" \\
+BODY=$(printf '{"title":"Usage backlog refresh","head":"%s","base":"main","body":"Weekly machine PR — refreshed usage-priority backlog."}' "$BRANCH")
+curl -sf -X POST "https://api.github.com/repos/${GITHUB_REPO}/pulls" \\
+  -H "Authorization: Bearer ${GITHUB_TOKEN}" \\
   -H "Accept: application/vnd.github+json" \\
-  -d "{{\\"title\\":\\"Usage backlog refresh\\",\\"head\\":\\"$BRANCH\\",\\"base\\":\\"main\\",\\"body\\":\\"Weekly machine PR — refreshed usage-priority backlog.\\"}}" \\
+  -d "$BODY" \\
   || echo "PR creation failed — see logs."
 """
 
@@ -65,6 +68,7 @@ def usage_trace_ingest():
         image=NODE_IMAGE,
         cmds=["bash", "-c"],
         arguments=[SCRIPT],
+        env_vars={"GITHUB_REPO": GITHUB_REPO_TMPL},
         secrets=[github_token_secret],
         get_logs=True,
         is_delete_operator_pod=True,
