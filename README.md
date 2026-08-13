@@ -29,3 +29,5 @@ npx -y sml-cli install .
 npx -y sml-cli validate .
 python3 tools/validate_sml.py .
 ```
+
+<!-- ci smoke test 2026-08-13 -->
