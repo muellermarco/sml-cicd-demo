@@ -16,10 +16,12 @@ REPO_URL = "https://github.com/muellermarco/sml-cicd-demo.git"
 GITHUB_REPO = "muellermarco/sml-cicd-demo"
 UPSTREAM_URL = "https://github.com/muellermarco/sml-tpcds-snowflake.git"
 
+# sml-cli atscale-deploy expects the API base with the `/api` prefix; without
+# it the repo lookup hits /v1/public/public/repos and 404s on 2026.7.0.
 ATSCALE_HOSTS = {
-    "dev": "https://dev.atscale-demo.com",
-    "qa": "https://qa.atscale-demo.com",
-    "live": "https://atscale-mm.atscale-demo.com",
+    "dev": "https://dev.atscale-demo.com/api",
+    "qa": "https://qa.atscale-demo.com/api",
+    "live": "https://atscale-mm.atscale-demo.com/api",
 }
 
 NODE_IMAGE = "node:20-bookworm"  # includes git
