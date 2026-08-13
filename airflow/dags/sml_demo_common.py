@@ -76,15 +76,17 @@ def github_status(sha: str, state: str, context: str, description: str):
     must not fail an otherwise-successful deploy."""
     import requests
     try:
-        from airflow.sdk import Variable          # Airflow 3
-    except ImportError:                            # pragma: no cover
-        from airflow.models import Variable        # Airflow 2 fallback
-
-    token = Variable.get("github_token", default_var=None)
-    if not token:
-        print("Airflow variable 'github_token' not set — skipping status post.")
-        return
-    try:
+        try:
+            from airflow.sdk import Variable        # Airflow 3
+        except ImportError:                          # pragma: no cover
+            from airflow.models import Variable      # Airflow 2 fallback
+        try:
+            token = Variable.get("github_token", default=None)      # Airflow 3
+        except TypeError:                            # pragma: no cover
+            token = Variable.get("github_token", default_var=None)  # Airflow 2
+        if not token:
+            print("Airflow variable 'github_token' not set — skipping status post.")
+            return
         r = requests.post(
             f"https://api.github.com/repos/{GITHUB_REPO}/statuses/{sha}",
             headers={"Authorization": f"Bearer {token}",
