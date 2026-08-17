@@ -1,6 +1,7 @@
 unique_name: DemoModel
 object_type: model
 label: DemoModel
+description: Lorcan
 aggregates:
   - unique_name: customer sales
     label: customer sales
