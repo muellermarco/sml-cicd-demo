@@ -1,6 +1,0 @@
-unique_name: Test Metric
-object_type: metric
-label: Test Metric
-calculation_method: minimum
-column: SS_ADDR_SK
-dataset: store_sales

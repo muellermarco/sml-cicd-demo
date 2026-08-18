@@ -1,8 +1,0 @@
-unique_name: Snowflake
-object_type: connection
-as_connection: Snowflake Partner
-label: Snowflake Partner
-db_type: sowflake
-database: SE_DEMO_LIBRARY
-schema: TPCDS_10TB
-override: true

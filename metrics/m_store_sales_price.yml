@@ -1,7 +1,0 @@
-unique_name: m_store_sales_price
-object_type: metric
-label: Store Sales Price
-calculation_method: sum
-unrelated_dimensions_handling: empty
-dataset: store_sales
-column: SS_SALES_PRICE
