@@ -12,15 +12,15 @@ git:
 
 atscale:
   development:
-    host: dev.atscale-demo.com
+    host: dev.atscale-se-demo.com
     namespace: atscale-dev           # GKE cluster atscale-performance (europe-west1-c)
     purpose: developer sandboxes — feature-branch deploys, experimentation
   qa:
-    host: qa.atscale-demo.com
+    host: qa.atscale-se-demo.com
     namespace: atscale-qa
     purpose: auto-deploy on merge to main; nightly regression vs Live
   live:
-    host: prod.atscale-demo.com
+    host: prod.atscale-se-demo.com
     namespace: atscale
     purpose: tagged releases only (vX.Y), gated by manual sign-off
 
@@ -31,7 +31,7 @@ upstream:
   model_source: https://github.com/muellermarco/sml-tpcds-snowflake
 
 orchestration:
-  airflow: http://airflow.atscale-demo.com:8080
+  airflow: http://airflow.atscale-se-demo.com:8080
   executor: LocalExecutor
   kubernetes:
     cluster: gke_atscale-sales-demo_europe-west1-c_atscale-performance

@@ -17,7 +17,7 @@ from sml_demo_common import GITHUB_REPO_TMPL, NODE_IMAGE, github_token_secret
 # template below — see sml_demo_common "DEFINE ONCE".
 SCRIPT = """set -euo pipefail
 git config --global user.name  "usage-trace bot"
-git config --global user.email "bot@atscale-demo.com"
+git config --global user.email "bot@atscale-se-demo.com"
 
 git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git /work
 cd /work
