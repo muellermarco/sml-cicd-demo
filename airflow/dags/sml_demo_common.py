@@ -54,11 +54,24 @@ def repo_var(key: str, default: str) -> str:
         return default
 
 # Base hostnames (no path). sml-cli needs the `/api` base, added in the script.
-ATSCALE_HOSTS = {
-    "dev": "https://dev.atscale-demo.com",
-    "qa": "https://qa.atscale-demo.com",
-    "live": "https://prod.atscale-demo.com",
-}
+# The domain comes from the Airflow Variable `atscale_domain` so one pipeline
+# codebase can target any AtScale trio following the dev/qa/prod.<domain>
+# convention (e.g. the GKE demo on atscale-demo.com or the AKS twin on
+# atscale-se-demo.com). Hostname = https://<subdomain>.<atscale_domain>.
+ATSCALE_SUBDOMAINS = {"dev": "dev", "qa": "qa", "live": "prod"}
+DEFAULT_ATSCALE_DOMAIN = "atscale-demo.com"
+
+# Jinja form for templated fields (KubernetesPodOperator arguments): resolved
+# at task runtime, so DAG parsing never hits the metadata DB.
+ATSCALE_DOMAIN_TMPL = (
+    "{{ var.value.get('atscale_domain', '" + DEFAULT_ATSCALE_DOMAIN + "') }}"
+)
+
+
+def atscale_host(env: str) -> str:
+    """Base URL for env, for use INSIDE task code (runtime Variable lookup)."""
+    domain = repo_var("atscale_domain", DEFAULT_ATSCALE_DOMAIN)
+    return f"https://{ATSCALE_SUBDOMAINS[env]}.{domain}"
 
 NODE_IMAGE = "node:20-bookworm"  # includes git
 
@@ -84,7 +97,7 @@ def deploy_pod(task_id: str, env: str, git_ref: str,
     Mints a short-lived public-API token in-pod: OAuth password grant ->
     /api/auth/token/public -> ATSCALE_API_TOKEN. No stored deploy token.
     """
-    host = ATSCALE_HOSTS[env]
+    host = f"https://{ATSCALE_SUBDOMAINS[env]}.{ATSCALE_DOMAIN_TMPL}"
     flags = ""
     if catalog_name:
         flags += f' --catalog-name="{catalog_name}"'

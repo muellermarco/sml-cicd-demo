@@ -2,13 +2,14 @@
 
 Triggered by the GitHub Actions workflow deploy-qa.yml (service-hook analog)
 via POST /api/v2/dags/sml_deploy_qa/dagRuns with conf {"sha": <commit>}.
-Deploys that exact commit to qa.atscale-demo.com, runs a smoke check, and
+Deploys that exact commit to the QA instance (qa.<atscale_domain>, see
+sml_demo_common.ATSCALE_SUBDOMAINS), runs a smoke check, and
 reports the result back to the commit as status context 'atscale/deploy-qa'.
 """
 from datetime import datetime
 
 from airflow.decorators import dag, task
-from sml_demo_common import ATSCALE_HOSTS, deploy_pod, github_status
+from sml_demo_common import atscale_host, deploy_pod, github_status
 
 
 @dag(schedule=None, start_date=datetime(2026, 8, 1), catchup=False, max_active_runs=1,
@@ -25,7 +26,7 @@ def sml_deploy_qa():
     def smoke_check():
         """Confirm the QA instance answers after the deploy."""
         import requests
-        r = requests.get(ATSCALE_HOSTS["qa"], verify=False, timeout=30)
+        r = requests.get(atscale_host("qa"), verify=False, timeout=30)
         assert r.status_code < 500, f"QA instance unhealthy: HTTP {r.status_code}"
         print(f"QA responded with HTTP {r.status_code}")
 
@@ -36,14 +37,14 @@ def sml_deploy_qa():
         sha = (ctx["dag_run"].conf or {}).get("sha")
         if sha:
             github_status(sha, "success", "atscale/deploy-qa",
-                          "Deploy to qa.atscale-demo.com succeeded")
+                          "Deploy to QA succeeded")
 
     @task(trigger_rule="one_failed")
     def report_failure(**ctx):
         sha = (ctx["dag_run"].conf or {}).get("sha")
         if sha:
             github_status(sha, "failure", "atscale/deploy-qa",
-                          "Deploy to qa.atscale-demo.com failed")
+                          "Deploy to QA failed")
 
     smoke = smoke_check()
     deploy >> smoke
