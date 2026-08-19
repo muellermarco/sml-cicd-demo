@@ -19,7 +19,7 @@ from sml_demo_common import (GITHUB_REPO_TMPL, NODE_IMAGE, UPSTREAM_URL_TMPL,
 # Variable-overridable templates below — see sml_demo_common "DEFINE ONCE".
 SCRIPT = """set -euo pipefail
 git config --global user.name  "baseline-refresh bot"
-git config --global user.email "bot@atscale-demo.com"
+git config --global user.email "bot@atscale-se-demo.com"
 
 git clone https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPO}.git /work
 cd /work

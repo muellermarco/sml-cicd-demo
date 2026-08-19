@@ -56,10 +56,10 @@ def repo_var(key: str, default: str) -> str:
 # Base hostnames (no path). sml-cli needs the `/api` base, added in the script.
 # The domain comes from the Airflow Variable `atscale_domain` so one pipeline
 # codebase can target any AtScale trio following the dev/qa/prod.<domain>
-# convention (e.g. the GKE demo on atscale-demo.com or the AKS twin on
-# atscale-se-demo.com). Hostname = https://<subdomain>.<atscale_domain>.
+# convention (default: the AKS demo on atscale-se-demo.com).
+# Hostname = https://<subdomain>.<atscale_domain>.
 ATSCALE_SUBDOMAINS = {"dev": "dev", "qa": "qa", "live": "prod"}
-DEFAULT_ATSCALE_DOMAIN = "atscale-demo.com"
+DEFAULT_ATSCALE_DOMAIN = "atscale-se-demo.com"
 
 # Jinja form for templated fields (KubernetesPodOperator arguments): resolved
 # at task runtime, so DAG parsing never hits the metadata DB.

@@ -3,7 +3,7 @@
 # to the QA AtScale instance and posts a commit status back.
 #
 # Required repository configuration:
-#   variable  AIRFLOW_URL       e.g. http://airflow.atscale-demo.com:8080
+#   variable  AIRFLOW_URL       e.g. http://airflow.atscale-se-demo.com:8080
 #   secret    AIRFLOW_USER      Airflow API user
 #   secret    AIRFLOW_PASSWORD  Airflow API password
 name: deploy-qa
