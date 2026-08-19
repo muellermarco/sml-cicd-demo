@@ -2,7 +2,8 @@
 
 Trigger manually (UI or REST) with conf {"branch": "<feature-branch>"}.
 Each branch lands as its own catalog (TPCDS-<branch>) so developers can
-work side by side on dev.atscale-demo.com — the 'developer sandbox' stage.
+work side by side on the dev instance (dev.<atscale_domain>) — the
+'developer sandbox' stage.
 """
 from datetime import datetime
 
